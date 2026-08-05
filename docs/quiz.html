@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyDeck — Quiz</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">📚 StudyDeck</a>
+    <div class="nav-links">
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn btn-secondary btn-sm" onclick="localStorage.removeItem('token');location.href='login.html'">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-sm" style="padding-top:32px;padding-bottom:60px">
+  <div id="loading-screen" class="loading-overlay"><div class="loading-spinner"></div> Generating quiz…</div>
+
+  <div id="error-screen" style="display:none;text-align:center;padding:60px 0">
+    <div style="font-size:3rem;margin-bottom:16px">⚠️</div>
+    <h2 id="error-title">Could not generate quiz</h2>
+    <p class="text-muted mt-2" id="error-msg"></p>
+    <div class="flex gap-3 justify-center mt-6">
+      <a id="back-btn" href="#" class="btn btn-primary">Back to Deck</a>
+    </div>
+  </div>
+
+  <div id="quiz-screen" style="display:none">
+    <div class="page-header">
+      <h1 id="quiz-title">Quiz</h1>
+      <p class="text-muted" id="quiz-subtitle"></p>
+    </div>
+    <div id="questions-container"></div>
+    <div class="text-center mt-6">
+      <button class="btn btn-primary" id="submit-btn" style="min-width:160px">Submit Quiz</button>
+    </div>
+  </div>
+
+  <div id="result-screen" style="display:none;text-align:center">
+    <div class="page-header">
+      <div style="font-size:3rem;margin-bottom:8px" id="result-emoji">🎯</div>
+      <h1 id="score-display"></h1>
+      <p class="text-muted" id="score-sub"></p>
+    </div>
+    <div id="feedback-list" style="text-align:left;margin-top:24px"></div>
+    <div class="flex gap-3 justify-center mt-8">
+      <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+      <a id="result-deck-link" href="#" class="btn btn-secondary">Back to Deck</a>
+    </div>
+    <hr class="divider mt-8">
+    <h2 class="mt-4 mb-4" style="text-align:left">Quiz History</h2>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'https://studydeck-wygu.onrender.com';
+const token = localStorage.getItem('token');
+if (!token) location.href = 'login.html';
+const deckId = new URLSearchParams(location.search).get('deck_id');
+if (!deckId) location.href = 'dashboard.html';
+
+function authH() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
+function showToast(msg,type='error'){const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+let quizId = null, questions = [];
+
+function showError(title, msg) {
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('error-title').textContent = title;
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('back-btn').href = `deck.html?id=${deckId}`;
+  document.getElementById('error-screen').style.display='block';
+}
+
+async function generateQuiz() {
+  try {
+    const res = await fetch(BASE_URL+`/ai/generate-quiz/${deckId}`, {method:'POST', headers:authH()});
+    if (!res.ok) {
+      const d = await res.json();
+      showError('Could not generate quiz', d.detail || 'Unknown error');
+      return;
+    }
+    const data = await res.json();
+    quizId = data.quiz_id;
+    questions = data.questions;
+
+    // Load deck title
+    const dr = await fetch(BASE_URL+`/decks/${deckId}`, {headers:{'Authorization':`Bearer ${token}`}});
+    if (dr.ok) {
+      const deck = await dr.json();
+      document.getElementById('quiz-title').textContent = `Quiz: ${deck.title}`;
+      document.getElementById('result-deck-link').href = `deck.html?id=${deckId}`;
+      document.getElementById('back-btn').href = `deck.html?id=${deckId}`;
+    }
+    document.getElementById('quiz-subtitle').textContent = `${questions.length} questions`;
+
+    renderQuestions(questions);
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('quiz-screen').style.display='block';
+  } catch(e) {
+    showError('Server error', 'Could not connect to the backend.');
+  }
+}
+
+function renderQuestions(qs) {
+  document.getElementById('questions-container').innerHTML = qs.map((q,i) => {
+    if (q.type === 'multiple_choice') {
+      const opts = (q.options||[]).map((opt,oi)=>`
+        <label class="quiz-option">
+          <input type="radio" name="q_${q.id}" value="${oi}" style="accent-color:var(--color-primary)">
+          <span>${opt}</span>
+        </label>`).join('');
+      return `<div class="quiz-question" id="qblock-${q.id}">
+        <div class="quiz-question-text">${i+1}. ${q.question}</div>
+        <div id="opts-${q.id}">${opts}</div>
+      </div>`;
+    } else {
+      return `<div class="quiz-question" id="qblock-${q.id}">
+        <div class="quiz-question-text">${i+1}. ${q.question}</div>
+        <input class="form-input mt-2" type="text" id="sa-${q.id}" placeholder="Your answer…">
+      </div>`;
+    }
+  }).join('');
+}
+
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const answers = [];
+  for (const q of questions) {
+    if (q.type === 'multiple_choice') {
+      const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
+      answers.push({question_id: q.id, answer: sel ? String(sel.value) : '-1'});
+    } else {
+      const val = document.getElementById(`sa-${q.id}`).value.trim();
+      answers.push({question_id: q.id, answer: val});
+    }
+  }
+
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Grading…';
+
+  try {
+    const res = await fetch(BASE_URL+'/ai/submit-quiz', {
+      method:'POST', headers:authH(),
+      body: JSON.stringify({quiz_id: quizId, deck_id: deckId, answers})
+    });
+    if (!res.ok) { showToast('Failed to submit quiz.'); document.getElementById('submit-btn').disabled=false; document.getElementById('submit-btn').textContent='Submit Quiz'; return; }
+    const result = await res.json();
+    showResult(result);
+  } catch(e) { showToast('Server error.'); document.getElementById('submit-btn').disabled=false; document.getElementById('submit-btn').textContent='Submit Quiz'; }
+});
+
+function showResult(result) {
+  document.getElementById('quiz-screen').style.display='none';
+  document.getElementById('result-screen').style.display='block';
+  const score = result.score_percent;
+  document.getElementById('score-display').textContent = `${score.toFixed(1)}%`;
+  document.getElementById('result-emoji').textContent = score >= 80 ? '🏆' : score >= 50 ? '📈' : '💪';
+  document.getElementById('score-sub').textContent = score >= 80 ? 'Excellent work!' : score >= 50 ? 'Good progress!' : 'Keep practicing!';
+
+  const fbMap = {};
+  (result.feedback||[]).forEach(f => fbMap[f.question_id]=f);
+
+  document.getElementById('feedback-list').innerHTML = questions.map((q,i) => {
+    const fb = fbMap[q.id];
+    const correct = fb ? fb.correct : false;
+    return `<div class="quiz-question" style="border-left:4px solid ${correct?'var(--color-secondary)':'var(--color-danger)'}">
+      <div class="quiz-question-text">${i+1}. ${q.question}</div>
+      <p class="text-sm mt-2" style="color:${correct?'var(--color-secondary)':'var(--color-danger)'}">
+        ${correct ? '✅ Correct' : `❌ Incorrect — Correct answer: ${fb ? fb.correct_answer : ''}`}
+      </p>
+    </div>`;
+  }).join('');
+
+  loadHistory();
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch(BASE_URL+`/ai/quiz-history/${deckId}`, {headers:authH()});
+    if (!res.ok) return;
+    const data = await res.json();
+    const attempts = data.attempts || [];
+    if (!attempts.length) { document.getElementById('history-list').innerHTML='<p class="text-muted">No previous attempts.</p>'; return; }
+    document.getElementById('history-list').innerHTML = attempts.map(a=>`
+      <div class="card mb-3">
+        <div class="flex justify-between items-center">
+          <span class="badge ${a.score_percent>=80?'badge-green':'badge-gray'}">${a.score_percent.toFixed(1)}%</span>
+          <span class="text-sm text-muted">${new Date(a.timestamp).toLocaleString()}</span>
+        </div>
+        <p class="text-sm text-muted mt-2">${a.question_count} questions</p>
+      </div>`).join('');
+  } catch(_){}
+}
+
+generateQuiz();
+</script>
+</body>
+</html>

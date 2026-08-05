@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyDeck — Study</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">📚 StudyDeck</a>
+    <div class="nav-links">
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn btn-secondary btn-sm" onclick="localStorage.removeItem('token');location.href='login.html'">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-sm" style="padding-top:40px">
+  <div id="loading-screen" class="loading-overlay"><div class="loading-spinner"></div> Starting session…</div>
+
+  <!-- No cards due -->
+  <div id="no-due-screen" style="display:none;text-align:center;padding:60px 0">
+    <div style="font-size:3rem;margin-bottom:16px">🎉</div>
+    <h2>You're all caught up!</h2>
+    <p class="text-muted mt-2">No cards are due for review right now.</p>
+    <p class="text-muted" id="next-due-msg"></p>
+    <div class="flex gap-3 justify-center mt-6">
+      <a id="back-to-deck" href="#" class="btn btn-primary">Back to Deck</a>
+      <a href="dashboard.html" class="btn btn-secondary">Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Study session -->
+  <div id="study-screen" style="display:none">
+    <div class="flex justify-between items-center mb-4">
+      <h2 id="deck-title-label"></h2>
+      <span id="progress-label" class="text-muted text-sm"></span>
+    </div>
+    <div class="progress-bar mb-6"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+
+    <div class="study-card" id="study-card">
+      <div class="study-card-front" id="card-front-text"></div>
+      <div class="study-card-back" id="card-back-text" style="display:none;border-top:1px solid #e5e7eb;padding-top:16px;width:100%"></div>
+    </div>
+
+    <div class="text-center mt-6">
+      <button class="btn btn-primary" id="show-answer-btn">Show Answer</button>
+    </div>
+
+    <div class="rating-buttons" id="rating-buttons" style="display:none">
+      <button class="btn btn-danger" data-rating="Again">Again<br><small>1 day</small></button>
+      <button class="btn btn-secondary" data-rating="Hard">Hard<br><small>3 days</small></button>
+      <button class="btn btn-success" data-rating="Good">Good<br><small>7 days</small></button>
+      <button class="btn btn-primary" data-rating="Easy">Easy<br><small>21 days</small></button>
+    </div>
+  </div>
+
+  <!-- Session summary -->
+  <div id="summary-screen" style="display:none;text-align:center;padding:60px 0">
+    <div style="font-size:3rem;margin-bottom:16px">✅</div>
+    <h2>Session Complete!</h2>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:24px;display:inline-block;min-width:260px;margin:24px 0;text-align:left">
+      <p><strong>Cards reviewed:</strong> <span id="summary-cards">0</span></p>
+      <p><strong>Duration:</strong> <span id="summary-duration">0s</span></p>
+    </div>
+    <div class="flex gap-3 justify-center mt-2">
+      <a id="summary-deck-link" href="#" class="btn btn-primary">Back to Deck</a>
+      <button class="btn btn-secondary" onclick="location.reload()">Study Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'https://studydeck-wygu.onrender.com';
+const token = localStorage.getItem('token');
+if (!token) location.href = 'login.html';
+const deckId = new URLSearchParams(location.search).get('deck_id');
+if (!deckId) location.href = 'dashboard.html';
+
+function authH() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
+function showToast(msg,type='error'){const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+let sessionId=null, queue=[], currentIdx=0, sessionStart=Date.now();
+
+async function startSession() {
+  try {
+    const res = await fetch(BASE_URL+`/study/${deckId}/start`,{method:'POST',headers:authH()});
+    const data = await res.json();
+    document.getElementById('loading-screen').style.display='none';
+
+    // Load deck title
+    fetch(BASE_URL+`/decks/${deckId}`,{headers:{'Authorization':`Bearer ${token}`}}).then(r=>r.json()).then(d=>{
+      document.getElementById('deck-title-label').textContent=d.title;
+      document.getElementById('back-to-deck').href=`deck.html?id=${deckId}`;
+      document.getElementById('summary-deck-link').href=`deck.html?id=${deckId}`;
+    });
+
+    if (data.due_count === 0) {
+      document.getElementById('no-due-screen').style.display='block';
+      if (data.next_due) document.getElementById('next-due-msg').textContent=`Next review: ${data.next_due}`;
+      return;
+    }
+    sessionId = data.session_id;
+    queue = data.due_cards;
+    sessionStart = Date.now();
+    document.getElementById('study-screen').style.display='block';
+    showCard(0);
+  } catch(e) { document.getElementById('loading-screen').style.display='none'; showToast('Failed to start session.'); }
+}
+
+function showCard(idx) {
+  if (idx >= queue.length) { endSession(); return; }
+  const card = queue[idx];
+  document.getElementById('card-front-text').textContent = card.front;
+  document.getElementById('card-back-text').textContent = card.back;
+  document.getElementById('card-back-text').style.display='none';
+  document.getElementById('show-answer-btn').style.display='inline-flex';
+  document.getElementById('rating-buttons').style.display='none';
+  const total = queue.length;
+  const done = idx;
+  document.getElementById('progress-label').textContent = `${done} / ${total}`;
+  document.getElementById('progress-fill').style.width = `${(done/total)*100}%`;
+}
+
+document.getElementById('show-answer-btn').addEventListener('click',()=>{
+  document.getElementById('card-back-text').style.display='block';
+  document.getElementById('show-answer-btn').style.display='none';
+  document.getElementById('rating-buttons').style.display='flex';
+});
+
+document.querySelectorAll('[data-rating]').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const rating = btn.dataset.rating;
+    const card = queue[currentIdx];
+    try {
+      await fetch(BASE_URL+`/study/${deckId}/rate`,{method:'POST',headers:authH(),body:JSON.stringify({session_id:sessionId,card_id:card.id,rating})});
+    } catch(_){}
+    currentIdx++;
+    showCard(currentIdx);
+  });
+});
+
+async function endSession() {
+  const duration = Math.round((Date.now()-sessionStart)/1000);
+  try { await fetch(BASE_URL+`/study/${deckId}/end`,{method:'POST',headers:authH(),body:JSON.stringify({session_id:sessionId,duration_seconds:duration})}); } catch(_){}
+  document.getElementById('study-screen').style.display='none';
+  document.getElementById('summary-screen').style.display='block';
+  document.getElementById('summary-cards').textContent = currentIdx;
+  document.getElementById('summary-duration').textContent = `${duration}s`;
+  document.getElementById('progress-fill').style.width='100%';
+}
+
+startSession();
+</script>
+</body>
+</html>
