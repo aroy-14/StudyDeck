@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyDeck — Deck</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">📚 StudyDeck</a>
+    <div class="nav-links">
+      <a href="index.html">Explore</a>
+      <span id="nav-dash"></span>
+      <span id="nav-auth-btn"></span>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div id="loading-deck" class="loading-overlay"><div class="loading-spinner"></div> Loading deck…</div>
+  <div id="deck-content" style="display:none">
+    <!-- Deck header -->
+    <div class="page-header">
+      <div class="flex justify-between items-center" style="flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 id="deck-title"></h1>
+          <p class="text-muted" id="deck-desc"></p>
+          <div id="deck-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px"></div>
+          <p class="text-sm text-muted mt-2" id="deck-meta"></p>
+          <p class="text-sm text-muted" id="deck-attribution" style="display:none"></p>
+        </div>
+        <div class="flex gap-2" style="flex-wrap:wrap">
+          <a id="study-btn" class="btn btn-primary" href="#">▶ Study</a>
+          <a id="quiz-btn" class="btn btn-secondary" href="#">🧠 Quiz</a>
+          <a id="ai-btn" class="btn btn-secondary" href="#">✨ AI Generate</a>
+          <button id="fork-btn" class="btn btn-secondary" style="display:none">🍴 Fork Deck</button>
+          <button id="edit-deck-btn" class="btn btn-secondary" style="display:none">Edit Deck</button>
+          <button id="delete-deck-btn" class="btn btn-danger" style="display:none">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit deck inline form (owner only) -->
+    <div id="edit-deck-form" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:24px">
+      <h3>Edit Deck</h3>
+      <div class="form-group mt-4"><label class="form-label">Title</label><input class="form-input" id="edit-title"></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="edit-desc"></textarea></div>
+      <div class="form-group"><label class="form-label">Visibility</label><select class="form-select" id="edit-vis"><option value="public">Public</option><option value="private">Private</option></select></div>
+      <div class="form-group"><label class="form-label">Tags (comma-separated)</label><input class="form-input" id="edit-tags"></div>
+      <div class="flex gap-2"><button class="btn btn-primary" id="save-edit-btn">Save Changes</button><button class="btn btn-secondary" id="cancel-edit-btn">Cancel</button></div>
+    </div>
+
+    <!-- Add card form (owner only) -->
+    <div id="add-card-section" style="display:none;margin-bottom:32px">
+      <h2>Add Card</h2>
+      <div class="flex gap-4 mt-4" style="flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:200px"><label class="form-label">Front (prompt)</label><textarea class="form-textarea" id="card-front" placeholder="Question or term…"></textarea></div>
+        <div class="form-group" style="flex:1;min-width:200px"><label class="form-label">Back (answer)</label><textarea class="form-textarea" id="card-back" placeholder="Answer or definition…"></textarea></div>
+      </div>
+      <button class="btn btn-primary" id="add-card-btn">Add Card</button>
+    </div>
+
+    <!-- Cards list -->
+    <div class="flex justify-between items-center mb-4">
+      <h2>Cards <span id="card-count-badge" class="badge badge-gray"></span></h2>
+    </div>
+    <div id="cards-list"></div>
+    <div id="cards-empty" class="empty-state" style="display:none"><div class="empty-state-icon">🃏</div><p>No cards yet.</p></div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'http://localhost:8000';
+const token = localStorage.getItem('token');
+const deckId = new URLSearchParams(location.search).get('id');
+if (!deckId) location.href = 'index.html';
+
+function authH() { return token ? {'Content-Type':'application/json','Authorization':`Bearer ${token}`} : {'Content-Type':'application/json'}; }
+function showToast(msg, type='error') { const t=document.createElement('div'); t.className=`toast toast-${type}`; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3500); }
+
+// Nav
+document.getElementById('nav-dash').innerHTML = token ? '<a href="dashboard.html">Dashboard</a>' : '';
+document.getElementById('nav-auth-btn').innerHTML = token
+  ? `<button class="btn btn-secondary btn-sm" onclick="localStorage.removeItem('token');location.href='login.html'">Logout</button>`
+  : '<a href="login.html">Login</a>';
+
+// JWT decode to get current user id
+function currentUserId() {
+  if (!token) return null;
+  try { const b=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); const pad=b.length%4; return JSON.parse(atob(pad?b+'='.repeat(4-pad):b)).sub; } catch(_){return null;}
+}
+
+let deck = null, cards = [], isOwner = false;
+
+async function loadDeck() {
+  try {
+    const res = await fetch(BASE_URL+`/decks/${deckId}`, {headers: token?{'Authorization':`Bearer ${token}`}:{}});
+    if (!res.ok) { showToast('Deck not found.'); setTimeout(()=>location.href='index.html',1500); return; }
+    deck = await res.json();
+    const uid = currentUserId();
+    isOwner = deck.owner_id === uid;
+
+    document.getElementById('deck-title').textContent = deck.title;
+    document.getElementById('deck-desc').textContent = deck.description || '';
+    document.getElementById('deck-tags').innerHTML = (deck.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('');
+    document.getElementById('deck-meta').textContent = `By: ${deck.owner_id} · 🍴 ${deck.fork_count} forks · 👁 ${deck.view_count} views`;
+    if (deck.source_deck_id) {
+      document.getElementById('deck-attribution').style.display='block';
+      document.getElementById('deck-attribution').textContent = `Forked from ${deck.source_author_name}`;
+    }
+
+    document.getElementById('study-btn').href = `study.html?deck_id=${deckId}`;
+    document.getElementById('quiz-btn').href = `quiz.html?deck_id=${deckId}`;
+    document.getElementById('ai-btn').href = `ai-generate.html?deck_id=${deckId}`;
+
+    if (isOwner) {
+      document.getElementById('add-card-section').style.display='block';
+      document.getElementById('edit-deck-btn').style.display='inline-flex';
+      document.getElementById('delete-deck-btn').style.display='inline-flex';
+    } else if (token && deck.visibility === 'public') {
+      document.getElementById('fork-btn').style.display='inline-flex';
+    }
+
+    document.getElementById('loading-deck').style.display='none';
+    document.getElementById('deck-content').style.display='block';
+    await loadCards();
+  } catch(e) { showToast('Failed to load deck.'); }
+}
+
+async function loadCards() {
+  try {
+    const res = await fetch(BASE_URL+`/decks/${deckId}/cards`, {headers: token?{'Authorization':`Bearer ${token}`}:{}});
+    cards = await res.json();
+    document.getElementById('card-count-badge').textContent = `${cards.length} / 1000`;
+    document.getElementById('cards-empty').style.display = cards.length?'none':'block';
+    document.getElementById('cards-list').innerHTML = cards.map((c,i)=>`
+      <div class="card mb-4" id="card-row-${c.id}">
+        <div class="flex justify-between items-center">
+          <span class="badge badge-gray">#${i+1}</span>
+          ${isOwner?`<div class="flex gap-2">
+            <button class="btn btn-secondary btn-sm" onclick="openEditCard('${c.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCard('${c.id}')">Delete</button>
+          </div>`:''}
+        </div>
+        <div class="flex gap-4 mt-3" style="flex-wrap:wrap">
+          <div style="flex:1;min-width:160px"><strong>Front</strong><p style="white-space:pre-wrap;margin-top:4px">${c.front}</p></div>
+          <div style="flex:1;min-width:160px"><strong>Back</strong><p style="white-space:pre-wrap;margin-top:4px">${c.back}</p></div>
+        </div>
+        <div id="edit-form-${c.id}" style="display:none;margin-top:12px">
+          <div class="flex gap-4" style="flex-wrap:wrap">
+            <div class="form-group" style="flex:1"><label class="form-label">Front</label><textarea class="form-textarea" id="ef-front-${c.id}">${c.front}</textarea></div>
+            <div class="form-group" style="flex:1"><label class="form-label">Back</label><textarea class="form-textarea" id="ef-back-${c.id}">${c.back}</textarea></div>
+          </div>
+          <div class="flex gap-2"><button class="btn btn-primary btn-sm" onclick="saveCard('${c.id}')">Save</button><button class="btn btn-secondary btn-sm" onclick="cancelEditCard('${c.id}')">Cancel</button></div>
+        </div>
+      </div>`).join('');
+  } catch(e) { showToast('Failed to load cards.'); }
+}
+
+document.getElementById('add-card-btn').addEventListener('click', async ()=>{
+  const front=document.getElementById('card-front').value.trim();
+  const back=document.getElementById('card-back').value.trim();
+  if(!front||!back){showToast('Both front and back are required.');return;}
+  try {
+    const res=await fetch(BASE_URL+`/decks/${deckId}/cards`,{method:'POST',headers:authH(),body:JSON.stringify({front,back})});
+    if(res.ok){document.getElementById('card-front').value='';document.getElementById('card-back').value='';await loadCards();showToast('Card added.','success');}
+    else{const d=await res.json();showToast(d.detail||'Error');}
+  }catch(_){showToast('Server error.');}
+});
+
+function openEditCard(id){document.getElementById(`edit-form-${id}`).style.display='block';}
+function cancelEditCard(id){document.getElementById(`edit-form-${id}`).style.display='none';}
+async function saveCard(id){
+  const front=document.getElementById(`ef-front-${id}`).value.trim();
+  const back=document.getElementById(`ef-back-${id}`).value.trim();
+  if(!front||!back){showToast('Both fields required.');return;}
+  try{
+    const res=await fetch(BASE_URL+`/decks/${deckId}/cards/${id}`,{method:'PUT',headers:authH(),body:JSON.stringify({front,back})});
+    if(res.ok){await loadCards();showToast('Card updated.','success');}
+    else{const d=await res.json();showToast(d.detail||'Error');}
+  }catch(_){showToast('Server error.');}
+}
+async function deleteCard(id){
+  if(!confirm('Delete this card?'))return;
+  try{
+    const res=await fetch(BASE_URL+`/decks/${deckId}/cards/${id}`,{method:'DELETE',headers:authH()});
+    if(res.ok||res.status===204){await loadCards();showToast('Card deleted.','success');}
+    else{const d=await res.json();showToast(d.detail||'Error');}
+  }catch(_){showToast('Server error.');}
+}
+
+document.getElementById('edit-deck-btn').addEventListener('click',()=>{
+  document.getElementById('edit-title').value=deck.title;
+  document.getElementById('edit-desc').value=deck.description||'';
+  document.getElementById('edit-vis').value=deck.visibility;
+  document.getElementById('edit-tags').value=(deck.tags||[]).join(', ');
+  document.getElementById('edit-deck-form').style.display='block';
+});
+document.getElementById('cancel-edit-btn').addEventListener('click',()=>document.getElementById('edit-deck-form').style.display='none');
+document.getElementById('save-edit-btn').addEventListener('click',async()=>{
+  const body={title:document.getElementById('edit-title').value.trim(),description:document.getElementById('edit-desc').value.trim(),visibility:document.getElementById('edit-vis').value,tags:document.getElementById('edit-tags').value.split(',').map(t=>t.trim()).filter(Boolean)};
+  if(!body.title){showToast('Title required.');return;}
+  try{const res=await fetch(BASE_URL+`/decks/${deckId}`,{method:'PUT',headers:authH(),body:JSON.stringify(body)});if(res.ok){document.getElementById('edit-deck-form').style.display='none';await loadDeck();showToast('Deck updated.','success');}else{const d=await res.json();showToast(d.detail||'Error');}}catch(_){showToast('Server error.');}
+});
+document.getElementById('delete-deck-btn').addEventListener('click',async()=>{
+  if(!confirm(`Delete "${deck.title}"? This cannot be undone.`))return;
+  try{const res=await fetch(BASE_URL+`/decks/${deckId}`,{method:'DELETE',headers:authH()});if(res.ok||res.status===204){showToast('Deck deleted.','success');setTimeout(()=>location.href='dashboard.html',1000);}else{const d=await res.json();showToast(d.detail||'Error');}}catch(_){showToast('Server error.');}
+});
+document.getElementById('fork-btn').addEventListener('click',async()=>{
+  try{const res=await fetch(BASE_URL+`/decks/${deckId}/fork`,{method:'POST',headers:authH()});if(res.ok||res.status===201){const d=await res.json();showToast('Deck forked!','success');setTimeout(()=>location.href=`deck.html?id=${d.id}`,1000);}else{const d=await res.json();showToast(d.detail||'Error');}}catch(_){showToast('Server error.');}
+});
+
+loadDeck();
+</script>
+</body>
+</html>

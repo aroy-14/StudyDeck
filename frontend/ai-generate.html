@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyDeck — AI Generate</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">📚 StudyDeck</a>
+    <div class="nav-links">
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn btn-secondary btn-sm" onclick="localStorage.removeItem('token');location.href='login.html'">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-sm" style="padding-top:32px;padding-bottom:60px">
+  <div class="page-header">
+    <h1>✨ AI Flashcard Generator</h1>
+    <p class="text-muted">Paste text or describe a topic — AI will create flashcards for you.</p>
+  </div>
+
+  <!-- Input form -->
+  <div id="input-section">
+    <div class="form-group">
+      <label class="form-label">Your text or topic *</label>
+      <textarea class="form-textarea" id="input-text" rows="8" placeholder="Paste an article, notes, textbook excerpt, or describe a topic like 'Python list comprehensions'…" style="min-height:180px"></textarea>
+      <p class="form-hint">Minimum 10 characters.</p>
+    </div>
+    <div class="flex gap-4" style="flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:180px">
+        <label class="form-label">Target card count (3–30)</label>
+        <input class="form-input" type="number" id="target-count" value="10" min="3" max="30">
+      </div>
+      <div class="form-group" style="flex:2;min-width:200px">
+        <label class="form-label">Save to deck</label>
+        <select class="form-select" id="deck-select"><option value="">Loading decks…</option></select>
+      </div>
+    </div>
+    <div id="input-error" class="form-error" style="display:none"></div>
+    <button class="btn btn-primary" id="generate-btn" style="min-width:160px">
+      <span id="gen-label">✨ Generate Flashcards</span>
+      <span id="gen-spinner" class="loading-spinner" style="display:none;width:16px;height:16px;margin-left:8px"></span>
+    </button>
+  </div>
+
+  <!-- Generated cards review -->
+  <div id="results-section" style="display:none;margin-top:40px">
+    <div class="flex justify-between items-center mb-4">
+      <h2>Generated Cards <span id="card-count-label" class="badge badge-blue"></span></h2>
+      <button class="btn btn-secondary btn-sm" id="regenerate-btn">↺ Regenerate</button>
+    </div>
+    <p class="text-muted mb-4">Review and edit the cards below, then save them to your deck.</p>
+
+    <div id="generated-cards-list"></div>
+
+    <div id="save-error" class="form-error" style="display:none"></div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn btn-primary" id="save-btn" style="min-width:160px">
+        <span id="save-label">💾 Save to Deck</span>
+        <span id="save-spinner" class="loading-spinner" style="display:none;width:16px;height:16px;margin-left:8px"></span>
+      </button>
+      <button class="btn btn-secondary" id="cancel-results-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'http://localhost:8000';
+const token = localStorage.getItem('token');
+if (!token) location.href = 'login.html';
+const preselectedDeckId = new URLSearchParams(location.search).get('deck_id');
+
+function authH() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
+function showToast(msg,type='error'){const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+// Load user decks for selector
+async function loadDecks() {
+  try {
+    const res = await fetch(BASE_URL+'/decks/my', {headers:authH()});
+    const data = await res.json();
+    const sel = document.getElementById('deck-select');
+    sel.innerHTML = '<option value="">— Select a deck —</option>' +
+      (data.decks||[]).map(d=>`<option value="${d.id}" ${d.id===preselectedDeckId?'selected':''}>${d.title}</option>`).join('');
+  } catch(_){ document.getElementById('deck-select').innerHTML='<option value="">Failed to load decks</option>'; }
+}
+
+let generatedCards = [];
+
+document.getElementById('generate-btn').addEventListener('click', async () => {
+  const text = document.getElementById('input-text').value.trim();
+  const count = parseInt(document.getElementById('target-count').value) || 10;
+  const deckId = document.getElementById('deck-select').value;
+  const errEl = document.getElementById('input-error');
+
+  errEl.style.display='none';
+  if (text.length < 10) { errEl.textContent='Text must be at least 10 characters.'; errEl.style.display='block'; return; }
+  if (!deckId) { errEl.textContent='Please select a deck to save to.'; errEl.style.display='block'; return; }
+
+  document.getElementById('generate-btn').disabled=true;
+  document.getElementById('gen-label').textContent='Generating…';
+  document.getElementById('gen-spinner').style.display='inline-block';
+
+  try {
+    const res = await fetch(BASE_URL+'/ai/generate-cards', {
+      method:'POST', headers:authH(),
+      body: JSON.stringify({text, deck_id:deckId, target_count:count})
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent=data.detail||'Generation failed.'; errEl.style.display='block'; return; }
+    generatedCards = (data.generated_cards||[]).map((c,i)=>({...c, _idx:i}));
+    renderGeneratedCards();
+    document.getElementById('results-section').style.display='block';
+    document.getElementById('results-section').scrollIntoView({behavior:'smooth'});
+  } catch(_){ errEl.textContent='Server error.'; errEl.style.display='block'; }
+  finally {
+    document.getElementById('generate-btn').disabled=false;
+    document.getElementById('gen-label').textContent='✨ Generate Flashcards';
+    document.getElementById('gen-spinner').style.display='none';
+  }
+});
+
+function renderGeneratedCards() {
+  document.getElementById('card-count-label').textContent=`${generatedCards.length} cards`;
+  document.getElementById('generated-cards-list').innerHTML = generatedCards.map((c,i)=>`
+    <div class="card mb-3" id="gen-card-${i}">
+      <div class="flex justify-between items-center mb-2">
+        <span class="badge badge-gray">#${i+1}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeCard(${i})">Remove</button>
+      </div>
+      <div class="flex gap-4" style="flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:160px">
+          <label class="form-label">Front</label>
+          <textarea class="form-textarea" id="gc-front-${i}" oninput="updateCard(${i},'front',this.value)" rows="3">${c.front}</textarea>
+        </div>
+        <div class="form-group" style="flex:1;min-width:160px">
+          <label class="form-label">Back</label>
+          <textarea class="form-textarea" id="gc-back-${i}" oninput="updateCard(${i},'back',this.value)" rows="3">${c.back}</textarea>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function removeCard(i) {
+  generatedCards.splice(i,1);
+  renderGeneratedCards();
+  if (generatedCards.length===0) {
+    document.getElementById('results-section').style.display='none';
+    showToast('All cards removed. Generate again.','error');
+  }
+}
+
+function updateCard(i, field, value) {
+  if (generatedCards[i]) generatedCards[i][field] = value;
+}
+
+document.getElementById('regenerate-btn').addEventListener('click',()=>{
+  document.getElementById('results-section').style.display='none';
+  generatedCards=[];
+  document.getElementById('generate-btn').click();
+});
+
+document.getElementById('cancel-results-btn').addEventListener('click',()=>{
+  document.getElementById('results-section').style.display='none';
+  generatedCards=[];
+});
+
+document.getElementById('save-btn').addEventListener('click', async () => {
+  const deckId = document.getElementById('deck-select').value;
+  const saveErr = document.getElementById('save-error');
+  saveErr.style.display='none';
+
+  // Collect current values from textareas
+  const cards = generatedCards.map((c,i)=>({
+    front: (document.getElementById(`gc-front-${i}`)?.value||c.front).trim(),
+    back: (document.getElementById(`gc-back-${i}`)?.value||c.back).trim()
+  })).filter(c=>c.front && c.back);
+
+  if (cards.length===0) { saveErr.textContent='No valid cards to save.'; saveErr.style.display='block'; return; }
+
+  document.getElementById('save-btn').disabled=true;
+  document.getElementById('save-label').textContent='Saving…';
+  document.getElementById('save-spinner').style.display='inline-block';
+
+  try {
+    const res = await fetch(BASE_URL+'/ai/save-cards', {
+      method:'POST', headers:authH(),
+      body: JSON.stringify({deck_id:deckId, cards})
+    });
+    const data = await res.json();
+    if (res.ok||res.status===201) {
+      showToast(`${data.cards_added} cards saved!`,'success');
+      setTimeout(()=>location.href=`deck.html?id=${deckId}`,1000);
+    } else {
+      saveErr.textContent=data.detail||'Save failed.'; saveErr.style.display='block';
+    }
+  } catch(_){ saveErr.textContent='Server error.'; saveErr.style.display='block'; }
+  finally {
+    document.getElementById('save-btn').disabled=false;
+    document.getElementById('save-label').textContent='💾 Save to Deck';
+    document.getElementById('save-spinner').style.display='none';
+  }
+});
+
+loadDecks();
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyDeck — Explore</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">📚 StudyDeck</a>
+    <div class="nav-links" id="nav-links">
+      <a href="index.html" class="active">Explore</a>
+      <span id="nav-auth"></span>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>Explore Study Decks</h1>
+    <p class="text-muted">Browse community-created study material</p>
+    <div class="flex gap-2 mt-4" style="max-width:520px">
+      <input class="form-input" type="text" id="search-input" placeholder="Search decks…" style="flex:1">
+      <button class="btn btn-primary" id="search-btn">Search</button>
+      <button class="btn btn-secondary" id="clear-btn">Clear</button>
+    </div>
+  </div>
+
+  <div class="flex gap-4 mb-6" style="flex-wrap:wrap">
+    <button class="btn btn-secondary active-tab" id="tab-recent" data-tab="recent">Recent</button>
+    <button class="btn btn-secondary" id="tab-trending" data-tab="trending">🔥 Trending</button>
+    <button class="btn btn-secondary" id="tab-personalized" data-tab="personalized">✨ For You</button>
+  </div>
+
+  <div id="deck-grid" class="grid grid-3 gap-4"></div>
+  <div id="loading" class="loading-overlay" style="display:none"><div class="loading-spinner"></div> Loading…</div>
+  <div id="empty" class="empty-state" style="display:none"><div class="empty-state-icon">📭</div><p>No decks found.</p></div>
+
+  <div class="flex justify-center gap-4 mt-6" id="pagination" style="display:none">
+    <button class="btn btn-secondary" id="prev-btn">← Previous</button>
+    <span id="page-info" class="text-muted" style="align-self:center"></span>
+    <button class="btn btn-secondary" id="next-btn">Next →</button>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'http://localhost:8000';
+let currentPage = 1, totalPages = 1, currentTab = 'recent', currentQuery = '';
+
+// Nav
+const token = localStorage.getItem('token');
+document.getElementById('nav-auth').innerHTML = token
+  ? `<a href="dashboard.html">Dashboard</a><button class="btn btn-secondary btn-sm" onclick="localStorage.removeItem('token');location.href='index.html'">Logout</button>`
+  : `<a href="login.html">Login</a><a href="register.html">Register</a>`;
+
+function showToast(msg, type='error') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function renderDecks(decks) {
+  const grid = document.getElementById('deck-grid');
+  document.getElementById('empty').style.display = decks.length ? 'none' : 'block';
+  grid.innerHTML = decks.map(d => `
+    <a href="deck.html?id=${d.id}" style="text-decoration:none;color:inherit">
+      <div class="card">
+        <div class="card-title">${d.title}</div>
+        <p class="text-muted text-sm" style="margin-bottom:8px">${d.description || ''}</p>
+        <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px">
+          ${(d.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('')}
+        </div>
+        <div class="card-meta">
+          <span>🍴 ${d.fork_count}</span>
+          <span>👁 ${d.view_count}</span>
+        </div>
+      </div>
+    </a>`).join('');
+}
+
+async function loadDecks() {
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('deck-grid').innerHTML = '';
+  try {
+    let url;
+    if (currentQuery) url = `/decks/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}`;
+    else if (currentTab === 'trending') url = `/decks/trending`;
+    else if (currentTab === 'personalized' && token) url = `/decks/personalized?page=${currentPage}`;
+    else url = `/decks?page=${currentPage}`;
+    const headers = token ? {'Authorization':`Bearer ${token}`} : {};
+    const res = await fetch(BASE_URL + url, {headers});
+    const data = await res.json();
+    const decks = data.decks || [];
+    totalPages = data.pages || 1;
+    renderDecks(decks);
+    const pg = document.getElementById('pagination');
+    const pi = document.getElementById('page-info');
+    if (totalPages > 1) {
+      pg.style.display = 'flex';
+      pi.textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('prev-btn').disabled = currentPage <= 1;
+      document.getElementById('next-btn').disabled = currentPage >= totalPages;
+    } else { pg.style.display = 'none'; }
+  } catch(e) { showToast('Failed to load decks.'); }
+  finally { document.getElementById('loading').style.display = 'none'; }
+}
+
+document.querySelectorAll('[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-tab]').forEach(b=>b.classList.remove('active-tab'));
+    btn.classList.add('active-tab');
+    currentTab = btn.dataset.tab; currentPage = 1; currentQuery = '';
+    document.getElementById('search-input').value = '';
+    loadDecks();
+  });
+});
+
+document.getElementById('search-btn').addEventListener('click', () => {
+  currentQuery = document.getElementById('search-input').value.trim();
+  currentPage = 1; loadDecks();
+});
+document.getElementById('clear-btn').addEventListener('click', () => {
+  currentQuery = ''; document.getElementById('search-input').value = '';
+  currentPage = 1; loadDecks();
+});
+document.getElementById('search-input').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('search-btn').click(); });
+document.getElementById('prev-btn').addEventListener('click', () => { if(currentPage>1){currentPage--;loadDecks();} });
+document.getElementById('next-btn').addEventListener('click', () => { if(currentPage<totalPages){currentPage++;loadDecks();} });
+
+loadDecks();
+</script>
+</body>
+</html>

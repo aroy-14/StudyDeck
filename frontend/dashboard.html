@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyDeck — Dashboard</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">📚 StudyDeck</a>
+    <div class="nav-links">
+      <a href="index.html">Explore</a>
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <button class="btn btn-secondary btn-sm" id="logout-btn">Logout</button>
+    </div>
+  </div>
+</nav>
+<div class="container">
+  <div class="page-header flex justify-between items-center">
+    <div><h1>My Decks</h1><p class="text-muted" id="welcome-msg"></p></div>
+    <button class="btn btn-primary" id="new-deck-btn">+ New Deck</button>
+  </div>
+
+  <!-- New deck modal -->
+  <div class="modal-overlay" id="deck-modal" style="display:none">
+    <div class="modal">
+      <h2 class="modal-title" id="modal-title">New Deck</h2>
+      <form id="deck-form">
+        <input type="hidden" id="edit-deck-id">
+        <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="deck-title" required></div>
+        <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="deck-desc"></textarea></div>
+        <div class="form-group"><label class="form-label">Visibility</label>
+          <select class="form-select" id="deck-visibility"><option value="public">Public</option><option value="private">Private</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Tags (comma-separated)</label><input class="form-input" id="deck-tags" placeholder="python, beginners, web"></div>
+        <div id="form-error" class="form-error" style="display:none"></div>
+        <div class="flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary" id="save-deck-btn">Save</button>
+          <button type="button" class="btn btn-secondary" id="cancel-modal-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="deck-grid" class="grid grid-3 gap-4"></div>
+  <div id="loading" class="loading-overlay" style="display:none"><div class="loading-spinner"></div> Loading…</div>
+  <div id="empty" class="empty-state" style="display:none">
+    <div class="empty-state-icon">📚</div>
+    <p>You have no decks yet.</p>
+    <button class="btn btn-primary mt-4" onclick="document.getElementById('new-deck-btn').click()">Create your first deck</button>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'http://localhost:8000';
+const token = localStorage.getItem('token');
+if (!token) window.location.href = 'login.html';
+
+function authHeaders() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
+function showToast(msg, type='error') {
+  const t = document.createElement('div'); t.className=`toast toast-${type}`; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+
+document.getElementById('logout-btn').addEventListener('click',()=>{localStorage.removeItem('token');window.location.href='login.html';});
+
+async function loadUser() {
+  try { const u = await fetch(BASE_URL+'/auth/me',{headers:authHeaders()}).then(r=>r.json()); document.getElementById('welcome-msg').textContent=`Welcome, ${u.display_name}`; } catch(_){}
+}
+
+async function loadDecks() {
+  document.getElementById('loading').style.display='flex';
+  try {
+    const data = await fetch(BASE_URL+'/decks/my',{headers:authHeaders()}).then(r=>r.json());
+    const decks = data.decks||[];
+    document.getElementById('empty').style.display = decks.length?'none':'block';
+    document.getElementById('deck-grid').innerHTML = decks.map(d=>`
+      <div class="card" id="deck-card-${d.id}">
+        <div class="card-title">${d.title}</div>
+        <p class="text-sm text-muted" style="margin-bottom:6px">${d.description||''}</p>
+        <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px">
+          ${(d.tags||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('')}
+          <span class="badge badge-gray">${d.visibility}</span>
+          ${d.source_deck_id?`<span class="badge badge-blue">Fork</span>`:''}
+        </div>
+        <div class="card-meta"><span>🃏 ${Object.keys([]).length} cards</span><span>🍴 ${d.fork_count}</span></div>
+        <div class="card-actions">
+          <a href="deck.html?id=${d.id}" class="btn btn-primary btn-sm">Open</a>
+          <a href="study.html?deck_id=${d.id}" class="btn btn-success btn-sm">Study</a>
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${d.id}','${d.title.replace(/'/g,"\\'")}','${(d.description||'').replace(/'/g,"\\'")}','${d.visibility}','${(d.tags||[]).join(',')}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDeck('${d.id}','${d.title.replace(/'/g,"\\'")}')">Delete</button>
+        </div>
+      </div>`).join('');
+  } catch(e){ showToast('Failed to load decks.'); }
+  finally { document.getElementById('loading').style.display='none'; }
+}
+
+function openModal(title='New Deck') {
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('deck-modal').style.display='flex';
+  document.getElementById('form-error').style.display='none';
+}
+function closeModal() {
+  document.getElementById('deck-modal').style.display='none';
+  document.getElementById('deck-form').reset();
+  document.getElementById('edit-deck-id').value='';
+}
+function openEditModal(id,title,desc,vis,tags) {
+  document.getElementById('edit-deck-id').value=id;
+  document.getElementById('deck-title').value=title;
+  document.getElementById('deck-desc').value=desc;
+  document.getElementById('deck-visibility').value=vis;
+  document.getElementById('deck-tags').value=tags;
+  openModal('Edit Deck');
+}
+
+document.getElementById('new-deck-btn').addEventListener('click',()=>openModal('New Deck'));
+document.getElementById('cancel-modal-btn').addEventListener('click',closeModal);
+document.getElementById('deck-modal').addEventListener('click',e=>{if(e.target===document.getElementById('deck-modal'))closeModal();});
+
+document.getElementById('deck-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('edit-deck-id').value;
+  const body = {
+    title: document.getElementById('deck-title').value.trim(),
+    description: document.getElementById('deck-desc').value.trim(),
+    visibility: document.getElementById('deck-visibility').value,
+    tags: document.getElementById('deck-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+  };
+  if (!body.title) { document.getElementById('form-error').textContent='Title is required.'; document.getElementById('form-error').style.display='block'; return; }
+  document.getElementById('save-deck-btn').disabled=true;
+  try {
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/decks/${id}` : '/decks';
+    const res = await fetch(BASE_URL+url,{method,headers:authHeaders(),body:JSON.stringify(body)});
+    if (res.ok) { closeModal(); loadDecks(); showToast(id?'Deck updated.':'Deck created.','success'); }
+    else { const d=await res.json(); document.getElementById('form-error').textContent=d.detail||'Error'; document.getElementById('form-error').style.display='block'; }
+  } catch(_){ document.getElementById('form-error').textContent='Server error.'; document.getElementById('form-error').style.display='block'; }
+  finally { document.getElementById('save-deck-btn').disabled=false; }
+});
+
+async function deleteDeck(id, title) {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(BASE_URL+`/decks/${id}`,{method:'DELETE',headers:authHeaders()});
+    if (res.ok) { showToast('Deck deleted.','success'); loadDecks(); }
+    else { const d=await res.json(); showToast(d.detail||'Error deleting deck.'); }
+  } catch(_){ showToast('Server error.'); }
+}
+
+loadUser(); loadDecks();
+</script>
+</body>
+</html>
