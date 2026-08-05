@@ -4,7 +4,7 @@
  * All methods throw an Error with a human-readable message on non-OK responses.
  */
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'https://studydeck-wygu.onrender.com';
 
 function _headers(extra = {}) {
   const h = { 'Content-Type': 'application/json', ...extra };
