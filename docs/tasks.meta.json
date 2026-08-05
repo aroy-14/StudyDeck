@@ -1,0 +1,393 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "0.1 Create the top-level folder structure": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388036
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651400677
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651514175
+      }
+    ],
+    "0.2 Set up Python virtual environment and install dependencies": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388190
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651519651
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651795761
+      }
+    ],
+    "0.3 Create the in-memory data store (`data/store.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388383
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651801993
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651882696
+      }
+    ],
+    "0.4 Create Pydantic schemas (`models/schemas.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388538
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651887402
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651974209
+      }
+    ],
+    "0.5 Scaffold FastAPI `main.py`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388682
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651979046
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652218523
+      }
+    ],
+    "1.1 Implement `POST /auth/register` endpoint (`routers/auth.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388786
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652222693
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652406408
+      }
+    ],
+    "1.3 Implement `POST /auth/login` and `GET /auth/me` endpoints": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651388896
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652423106
+      }
+    ],
+    "1.5 Create `register.html` with registration form": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389020
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652427571
+      }
+    ],
+    "1.6 Create `login.html` with login form": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389183
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652435633
+      }
+    ],
+    "1.7 Create `assets/js/api.js` and `assets/js/auth.js`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389317
+      },
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784652441308
+      }
+    ],
+    "1.8 Checkpoint — Ensure auth flow works end to end": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389425
+      }
+    ],
+    "2.1 Implement deck CRUD endpoints (`routers/decks.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389558
+      }
+    ],
+    "2.4 Implement public feed, trending, personalized, and search endpoints": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389665
+      }
+    ],
+    "2.6 Create `index.html` — public landing and feed page": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389781
+      }
+    ],
+    "2.7 Create `dashboard.html` — authenticated user's deck list": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651389890
+      }
+    ],
+    "2.8 Create `deck.html` — deck detail page": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390005
+      }
+    ],
+    "2.9 Checkpoint — Ensure deck API and all deck pages work end to end": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390116
+      }
+    ],
+    "3.1 Implement card CRUD endpoints (`routers/cards.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390221
+      }
+    ],
+    "3.4 Wire card UI into `deck.html`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390342
+      }
+    ],
+    "4.1 Implement `POST /decks/{deck_id}/fork` endpoint": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390457
+      }
+    ],
+    "4.3 Wire Fork button into `deck.html`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390558
+      }
+    ],
+    "5.1 Implement SRS pure logic in `services/srs.py`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390666
+      }
+    ],
+    "5.3 Implement study session endpoints (`routers/study.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390775
+      }
+    ],
+    "5.4 Create `study.html` — spaced repetition study session page": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651390888
+      }
+    ],
+    "5.5 Checkpoint — Ensure SRS tests all pass and study flow works end to end": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391035
+      }
+    ],
+    "6.1 Implement AI flashcard generation in `services/ai_service.py`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391165
+      }
+    ],
+    "6.2 Implement AI flashcard endpoints (`routers/ai.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391304
+      }
+    ],
+    "6.4 Create `ai-generate.html` — AI flashcard generator page": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391415
+      }
+    ],
+    "7.1 Implement AI quiz generation and scoring in `services/ai_service.py`": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391545
+      }
+    ],
+    "7.2 Implement AI quiz endpoints (`routers/ai.py`)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391785
+      }
+    ],
+    "7.4 Create `quiz.html` — AI quiz page": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651391909
+      }
+    ],
+    "7.5 Checkpoint — Ensure AI endpoints work end to end with mocked OpenAI": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392017
+      }
+    ],
+    "8.1 Create `assets/css/style.css` — global styles": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392140
+      }
+    ],
+    "8.2 Create `assets/css/components.css` — reusable component styles": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392322
+      }
+    ],
+    "8.3 Wire up navigation and auth guards across all pages": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392452
+      }
+    ],
+    "8.4 Add error handling and loading states to all frontend JS modules": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392599
+      }
+    ],
+    "8.6 Final checkpoint — All tests pass, all pages load correctly": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392774
+      }
+    ],
+    "T.1 Wire Supabase PostgreSQL — replace `data/store.py` in-memory dicts with Supabase Python client calls": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651392924
+      }
+    ],
+    "T.2 Write and run Supabase migrations (users, decks, cards, card_progress, study_sessions, quiz_attempts tables)": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651393113
+      }
+    ],
+    "T.3 Add `DATABASE_URL` / Supabase credentials to environment config": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651393260
+      }
+    ],
+    "T.4 Deploy backend to Railway or Render": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651393423
+      }
+    ],
+    "T.5 Deploy frontend static files to Vercel or Netlify": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651393594
+      }
+    ],
+    "T.6 Update `BASE_URL` in `api.js` to point to deployed backend URL": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651393737
+      }
+    ],
+    "T.7 Restrict CORS in `main.py` to deployed frontend domain": [
+      {
+        "executionId": "54fbea47-4437-4bed-994a-4b2bc9b1c1a3",
+        "chatSessionId": "sess_37bfe161-50f8-4c11-a972-c65e98bdeb7a",
+        "timestamp": 1784651393905
+      }
+    ]
+  }
+}
